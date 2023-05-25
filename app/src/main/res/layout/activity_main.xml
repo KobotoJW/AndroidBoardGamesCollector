@@ -21,13 +21,12 @@
         android:id="@+id/editTextPersonName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="44dp"
-        android:ems="10"
+        android:layout_marginBottom="248dp"
+        android:ems="12"
         android:inputType="textPersonName"
         android:text="Wprowadź nazwę profilu"
         app:layout_constraintBottom_toTopOf="@+id/textGamesCounter"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
@@ -51,7 +50,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.326" />
+        app:layout_constraintVertical_bias="0.909" />
 
     <TextView
         android:id="@+id/textLastSyncDate"
