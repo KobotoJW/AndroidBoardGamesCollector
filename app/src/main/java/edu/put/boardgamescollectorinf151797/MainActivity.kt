@@ -28,5 +28,10 @@ class MainActivity : AppCompatActivity() {
             val syncActivityIntent = Intent(applicationContext, SyncActivity::class.java)
             startActivity(syncActivityIntent)
         }
+        
+    }
+
+    fun checkIfDatabaseExists(): Boolean {
+        return getDatabasePath("boardgamescollector.db").exists()
     }
 }
