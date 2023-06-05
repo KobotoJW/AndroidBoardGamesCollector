@@ -32,17 +32,21 @@ class MainActivity : AppCompatActivity() {
             startActivity(syncActivityIntent)
         }
         buttonWipeData.setOnClickListener { view ->
-            val myApi = MyApiClient()
-            myApi.resetDatabase(this)
+            dbHandler.dropTables()
+            val initialConfigActivityIntent = Intent(applicationContext, InitialConfigActivity::class.java)
+            startActivity(initialConfigActivityIntent)
+
         }
 
         if (!checkIfDatabaseExists()) {
             val initialConfigActivityIntent = Intent(applicationContext, InitialConfigActivity::class.java)
             startActivity(initialConfigActivityIntent)
-            }
+        } else {
+            val textProfileName: TextView = findViewById(R.id.textProfileName)
+            textProfileName.text = dbHandler.getUsername()
+        }
 
-        val textProfileName: TextView = findViewById(R.id.textProfileName)
-        textProfileName.text = dbHandler.getUsername()
+
         
     }
 
