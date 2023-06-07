@@ -55,6 +55,9 @@ class MainActivity : AppCompatActivity() {
             val textExtensionsCounter: TextView = findViewById(R.id.textExtensionsCounter)
             val numberExpansions = dbHandler.getNumberOfExpansions()
             textExtensionsCounter.text = "Liczba posiadanych dodatków: $numberExpansions"
+
+            val textLastSyncDate: TextView = findViewById(R.id.textLastSyncDate)
+            textLastSyncDate.text = "Ostatnia synchronizacja: " + dbHandler.getLastSyncDate()
         }
 
 
