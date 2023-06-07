@@ -6,8 +6,10 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 import org.w3c.dom.Node
 import org.w3c.dom.NodeList
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileWriter
+import java.io.InputStream
 import java.net.MalformedURLException
 import java.net.URL
 import javax.xml.parsers.DocumentBuilder
@@ -54,6 +56,7 @@ class MyApiClient(context: Context) {
                 }
             }
         }
+        File(fileName).delete()
     }
 
     fun loadData(
@@ -124,22 +127,22 @@ class MyApiClient(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val url = URL(urlString)
-                val reader = url.openStream().bufferedReader()
-                val downloadFile = File(fileName).also { it.createNewFile() }
-                val writer = FileWriter(downloadFile).buffered()
-                var line: String?
-                while (reader.readLine().also { line = it?.toString() ?: "" } != null) {
-                    line?.replace("[^\\u0000-\\uFFFF]", "")
-                    writer.write(line)
+                val inputStream: InputStream = url.openStream()
+                val outputStream = ByteArrayOutputStream()
+
+                val buffer = ByteArray(4096)
+                var bytesRead: Int
+
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
                 }
-                reader.close()
-                writer.close()
+
+                val xmlContent = outputStream.toString()
+
                 withContext(Dispatchers.Main) {
+                    saveXMLToFile(xmlContent, fileName)
                     loadMoreData(context, xmlDirectory)
                     println("Loaded additional")
-                    if (File(fileName).exists()) {
-                        File(fileName).delete()
-                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -162,6 +165,13 @@ class MyApiClient(context: Context) {
         }
     }
 
+    fun saveXMLToFile(xmlContent: String, fileName: String) {
+        val downloadFile = File(fileName).also { it.createNewFile() }
+        val writer = FileWriter(downloadFile)
+        writer.write(xmlContent)
+        writer.close()
+    }
+
     fun loadMoreData(
         context: Context,
         xmlDirectory: String = "/data/data/edu.put.boardgamescollectorinf151797/databases"
@@ -176,7 +186,7 @@ class MyApiClient(context: Context) {
             xmlDoc.documentElement.normalize()
             val items: NodeList = xmlDoc.getElementsByTagName("item")
 
-            for (i in 0..items.length - 1) {
+            for (i in 0 until items.length) {
                 val itemNode: Node = items.item(i)
                 if (itemNode.nodeType == Node.ELEMENT_NODE) {
                     val elem = itemNode as Element
@@ -189,11 +199,10 @@ class MyApiClient(context: Context) {
 
                     val rankingTags = elem.getElementsByTagName("rank")
 
-                    for (j in 0..children.length - 1) {
+                    for (j in 0 until children.length) {
                         val node = children.item(j)
                         if (node is Element) {
                             when (node.nodeName) {
-
                                 "description" -> {
                                     currentDescription = node.textContent
                                 }
@@ -207,26 +216,23 @@ class MyApiClient(context: Context) {
                             val elem2 = item2 as Element
 
                             if (elem2.getAttribute("friendlyname") == "Board Game Rank") {
-
                                 if (elem2.getAttribute("value").toString() == "Not Ranked") {
                                     currentRank = "0"
                                 } else {
                                     currentRank = elem2.getAttribute("value").toString()
                                 }
                             }
-
                         }
                     }
-
-                    println(currentCategory)
-                    println(currentBGGid)
-                    println(currentDescription)
-                    println(currentRank)
-
-
+                    //File(xmlDirectory, fileName).delete()
                     if (currentCategory != null && currentBGGid != null && currentDescription != null && currentRank != null) {
                         val dbHandler = DBUtil(context, null, null, 1)
-                        dbHandler.addGameDetails(currentBGGid, currentRank, currentDescription, currentCategory)
+                        dbHandler.addGameDetails(
+                            currentBGGid,
+                            currentRank,
+                            currentDescription,
+                            currentCategory
+                        )
                         println("extended")
                     }
                 }

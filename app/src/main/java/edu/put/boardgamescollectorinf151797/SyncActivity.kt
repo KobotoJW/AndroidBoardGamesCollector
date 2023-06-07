@@ -24,6 +24,7 @@ class SyncActivity : AppCompatActivity() {
         buttonBackFromSync.setOnClickListener {
             val mainActivityIntent = Intent(applicationContext, MainActivity::class.java)
             startActivity(mainActivityIntent)
+            finish()
         }
 
         val buttonSyncSync: Button = findViewById(R.id.buttonSyncSync)

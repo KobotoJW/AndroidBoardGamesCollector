@@ -2,9 +2,17 @@ package edu.put.boardgamescollectorinf151797
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import android.widget.SimpleCursorAdapter
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import java.time.LocalDateTime
 
 class DBUtil(context: Context, name: String?, factory: SQLiteDatabase.CursorFactory?, version: Int) : SQLiteOpenHelper(context, DATABASE_NAME, factory, DATABASE_VERSION) {
@@ -73,15 +81,6 @@ class DBUtil(context: Context, name: String?, factory: SQLiteDatabase.CursorFact
         db.execSQL("DROP TABLE IF EXISTS $TABLE_GAMES")
         db.close()
     }
-    fun resetDatabase() {
-        val db = this.writableDatabase
-        val currUser = getUsername()
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_ACCOUNT")
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_GAMES")
-        db.close()
-        addAccount(currUser)
-        createTableGames()
-    }
 
     fun getLastSyncDate() : String {
         val db = this.readableDatabase
@@ -124,5 +123,51 @@ class DBUtil(context: Context, name: String?, factory: SQLiteDatabase.CursorFact
         db.close()
     }
 
+    fun getNumberOfGames(): String {
+        try {
+            val db = this.readableDatabase
+            val cursor = db.rawQuery("SELECT * FROM $TABLE_GAMES WHERE $COLUMN_CATEGORY = 'boardgame'", null)
+            val numberOfGames = cursor.count
+            cursor.close()
+            return numberOfGames.toString()
+        } catch (e: Exception) {
+            println("Exception: $e")
+            return "0"
+        }
 
+    }
+
+    fun getNumberOfExpansions() : String {
+        try {
+            val db = this.readableDatabase
+            val cursor = db.rawQuery("SELECT * FROM $TABLE_GAMES WHERE $COLUMN_CATEGORY = 'boardgameexpansion'", null)
+            val numberOfExpansions = cursor.count
+            cursor.close()
+            return numberOfExpansions.toString()
+        } catch (e: Exception) {
+            println(e)
+            return "0"
+        }
+
+    }
+
+    fun getGames(category: String): Cursor {
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT $COLUMN_COLLID AS _id, $COLUMN_TITLE, $COLUMN_YEARPUBLISHED, $COLUMN_RANK, $COLUMN_THUMBNAIL FROM $TABLE_GAMES WHERE $COLUMN_CATEGORY = '$category' ORDER BY $COLUMN_TITLE", null)
+        return cursor
+    }
+
+    fun getBitmapFromURL(src: String): Bitmap? {
+        try {
+            val url = URL(src)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.doInput = true
+            connection.connect()
+            val input = connection.inputStream
+            return BitmapFactory.decodeStream(input)
+        } catch (e: Exception) {
+            println(e)
+            return null
+        }
+    }
 }

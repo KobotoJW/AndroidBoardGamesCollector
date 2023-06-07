@@ -18,11 +18,15 @@ class InitialConfigActivity : AppCompatActivity() {
 
         val buttonInitialConfirm: Button = findViewById(R.id.buttonInitialConfirm)
         buttonInitialConfirm.setOnClickListener {
+            val apiClient = MyApiClient(this)
             dbHandler.dropTables()
             val username = editTextInitProfile.text.toString()
             dbHandler.addAccount(username)
+            dbHandler.createTableGames()
+            apiClient.downloadFile(this, username)
             val mainActivityIntent = Intent(applicationContext, MainActivity::class.java)
             startActivity(mainActivityIntent)
+            finish()
 
         }
 
