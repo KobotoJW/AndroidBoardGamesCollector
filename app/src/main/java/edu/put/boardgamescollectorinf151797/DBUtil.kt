@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.widget.SimpleCursorAdapter
 import java.time.LocalDateTime
 
 class DBUtil(context: Context, name: String?, factory: SQLiteDatabase.CursorFactory?, version: Int) : SQLiteOpenHelper(context, DATABASE_NAME, factory, DATABASE_VERSION) {
@@ -22,6 +23,7 @@ class DBUtil(context: Context, name: String?, factory: SQLiteDatabase.CursorFact
         val COLUMN_COLLID = "collid"
         val COLUMN_THUMBNAIL = "thumbnail"
         val COLUMN_DESCRIPTION = "description"
+        val COLUMN_RANK = "rank"
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
@@ -60,7 +62,7 @@ class DBUtil(context: Context, name: String?, factory: SQLiteDatabase.CursorFact
 
     public fun createTableGames(){
         val db = this.writableDatabase
-        val CREATE_GAMES_TABLE = ("CREATE TABLE $TABLE_GAMES($COLUMN_COLLID INTEGER PRIMARY KEY, $COLUMN_BGGID INTEGER, $COLUMN_TITLE TEXT, $COLUMN_YEARPUBLISHED TEXT, $COLUMN_CATEGORY TEXT, $COLUMN_THUMBNAIL TEXT, $COLUMN_DESCRIPTION TEXT)")
+        val CREATE_GAMES_TABLE = ("CREATE TABLE $TABLE_GAMES($COLUMN_COLLID INTEGER PRIMARY KEY, $COLUMN_BGGID INTEGER, $COLUMN_TITLE TEXT, $COLUMN_YEARPUBLISHED TEXT, $COLUMN_RANK INTEGER, $COLUMN_CATEGORY TEXT, $COLUMN_THUMBNAIL TEXT, $COLUMN_DESCRIPTION TEXT)")
         db.execSQL(CREATE_GAMES_TABLE)
         db.close()
     }
@@ -99,7 +101,7 @@ class DBUtil(context: Context, name: String?, factory: SQLiteDatabase.CursorFact
         return username
     }
 
-    fun addGame(currentCategory: String, currentTitle: String, currentYear: String, currentBGGid: Int, currentCollid: Int, currentThumbnail: String, currentDescription: String = "NULL") {
+    fun addGame(currentCategory: String, currentTitle: String, currentYear: String, currentBGGid: Int, currentCollid: Int, currentThumbnail: String) {
         val db = this.writableDatabase
         val values = ContentValues()
         values.put(COLUMN_COLLID, currentCollid)
@@ -108,9 +110,19 @@ class DBUtil(context: Context, name: String?, factory: SQLiteDatabase.CursorFact
         values.put(COLUMN_CATEGORY, currentCategory)
         values.put(COLUMN_YEARPUBLISHED, currentYear)
         values.put(COLUMN_THUMBNAIL, currentThumbnail)
-        values.put(COLUMN_DESCRIPTION, currentDescription)
         db.insert(TABLE_GAMES, null, values)
         db.close()
     }
+
+    fun addGameDetails(currentBGCid: Int, currentRank: String, currentDescription: String, currentCategory: String) {
+        val db = this.writableDatabase
+        val values = ContentValues()
+        values.put(COLUMN_RANK, currentRank)
+        values.put(COLUMN_DESCRIPTION, currentDescription)
+        values.put(COLUMN_CATEGORY, currentCategory)
+        db.update(TABLE_GAMES, values, "$COLUMN_BGGID = $currentBGCid", null)
+        db.close()
+    }
+
 
 }

@@ -14,7 +14,7 @@ import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory
 
 
-class MyApiClient (context: Context) {
+class MyApiClient(context: Context) {
     fun downloadFile(context: Context, username: String) {
         val urlString = "https://boardgamegeek.com/xmlapi2/collection?username=$username"
         val xmlDirectory = "/data/data/edu.put.boardgamescollectorinf151797/databases"
@@ -34,7 +34,7 @@ class MyApiClient (context: Context) {
                 writer.close()
                 withContext(Dispatchers.Main) {
                     loadData(context, xmlDirectory)
-                    println("Loaded")
+                    println("Loaded basics")
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -49,19 +49,23 @@ class MyApiClient (context: Context) {
                     val incompleteFile = File(fileName)
                     if (incompleteFile.exists()) {
                         incompleteFile.delete()
-                        println("Deleted incomplete file")
+                        println("Deleted incomplete file basics")
                     }
                 }
             }
         }
     }
 
-    fun loadData (context: Context, xmlDirectory: String = "/data/data/edu.put.boardgamescollectorinf151797/databases") {
+    fun loadData(
+        context: Context,
+        xmlDirectory: String = "/data/data/edu.put.boardgamescollectorinf151797/databases"
+    ) {
         val fileName = "games.xml"
         val inFile = File(xmlDirectory, fileName)
 
-        if  (inFile.exists()) {
-            val xmlDocBuil: DocumentBuilder? = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+        if (inFile.exists()) {
+            val xmlDocBuil: DocumentBuilder? =
+                DocumentBuilderFactory.newInstance().newDocumentBuilder()
             val xmlDoc: Document = xmlDocBuil!!.parse(inFile)
             xmlDoc.documentElement.normalize()
             val items: NodeList = xmlDoc.getElementsByTagName("item")
@@ -79,7 +83,7 @@ class MyApiClient (context: Context) {
                     var currentCollid: Int? = elem.getAttribute("collid").toInt()
                     var currentThumbnail: String? = null
 
-                    for (j in 0..children.length-1) {
+                    for (j in 0..children.length - 1) {
                         val node = children.item(j)
                         if (node is Element) {
                             when (node.nodeName) {
@@ -97,7 +101,133 @@ class MyApiClient (context: Context) {
                     }
                     if (currentCategory != null && currentTitle != null && currentYear != null && currentBGGid != null && currentCollid != null && currentThumbnail != null) {
                         val dbHandler = DBUtil(context, null, null, 1)
-                        dbHandler.addGame(currentCategory, currentTitle, currentYear, currentBGGid, currentCollid, currentThumbnail)
+                        dbHandler.addGame(
+                            currentCategory,
+                            currentTitle,
+                            currentYear,
+                            currentBGGid,
+                            currentCollid,
+                            currentThumbnail
+                        )
+                        downloadAdditionalFile(context, currentBGGid.toString())
+                    }
+                }
+            }
+        }
+    }
+
+    fun downloadAdditionalFile(context: Context, objid: String) {
+        val urlString = "https://boardgamegeek.com/xmlapi2/thing?id=$objid&stats=1"
+        val xmlDirectory = "/data/data/edu.put.boardgamescollectorinf151797/databases"
+        val fileName = "$xmlDirectory/gameDetails.xml"
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val url = URL(urlString)
+                val reader = url.openStream().bufferedReader()
+                val downloadFile = File(fileName).also { it.createNewFile() }
+                val writer = FileWriter(downloadFile).buffered()
+                var line: String?
+                while (reader.readLine().also { line = it?.toString() ?: "" } != null) {
+                    line?.replace("[^\\u0000-\\uFFFF]", "")
+                    writer.write(line)
+                }
+                reader.close()
+                writer.close()
+                withContext(Dispatchers.Main) {
+                    loadMoreData(context, xmlDirectory)
+                    println("Loaded additional")
+                    if (File(fileName).exists()) {
+                        File(fileName).delete()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    when (e) {
+                        is MalformedURLException -> {
+                            println("MalformedURLException")
+                        }
+                        else -> {
+                            println("Exception $e")
+                            println("current $urlString")
+                        }
+                    }
+                    val incompleteFile = File(fileName)
+                    if (incompleteFile.exists()) {
+                        incompleteFile.delete()
+                        println("Deleted incomplete file additional")
+                    }
+                }
+            }
+        }
+    }
+
+    fun loadMoreData(
+        context: Context,
+        xmlDirectory: String = "/data/data/edu.put.boardgamescollectorinf151797/databases"
+    ) {
+        val fileName = "gameDetails.xml"
+        val inFile = File(xmlDirectory, fileName)
+
+        if (inFile.exists()) {
+            val xmlDocBuil: DocumentBuilder? =
+                DocumentBuilderFactory.newInstance().newDocumentBuilder()
+            val xmlDoc: Document = xmlDocBuil!!.parse(inFile)
+            xmlDoc.documentElement.normalize()
+            val items: NodeList = xmlDoc.getElementsByTagName("item")
+
+            for (i in 0..items.length - 1) {
+                val itemNode: Node = items.item(i)
+                if (itemNode.nodeType == Node.ELEMENT_NODE) {
+                    val elem = itemNode as Element
+                    val children = elem.childNodes
+
+                    var currentCategory: String? = elem.getAttribute("type")
+                    var currentBGGid: Int? = elem.getAttribute("id").toInt()
+                    var currentDescription: String? = null
+                    var currentRank: String? = null
+
+                    val rankingTags = elem.getElementsByTagName("rank")
+
+                    for (j in 0..children.length - 1) {
+                        val node = children.item(j)
+                        if (node is Element) {
+                            when (node.nodeName) {
+
+                                "description" -> {
+                                    currentDescription = node.textContent
+                                }
+                            }
+                        }
+                    }
+
+                    for (j in 0 until rankingTags.length) {
+                        val item2: Node = rankingTags.item(j)
+                        if (item2.nodeType == Node.ELEMENT_NODE) {
+                            val elem2 = item2 as Element
+
+                            if (elem2.getAttribute("friendlyname") == "Board Game Rank") {
+
+                                if (elem2.getAttribute("value").toString() == "Not Ranked") {
+                                    currentRank = "0"
+                                } else {
+                                    currentRank = elem2.getAttribute("value").toString()
+                                }
+                            }
+
+                        }
+                    }
+
+                    println(currentCategory)
+                    println(currentBGGid)
+                    println(currentDescription)
+                    println(currentRank)
+
+
+                    if (currentCategory != null && currentBGGid != null && currentDescription != null && currentRank != null) {
+                        val dbHandler = DBUtil(context, null, null, 1)
+                        dbHandler.addGameDetails(currentBGGid, currentRank, currentDescription, currentCategory)
+                        println("extended")
                     }
                 }
             }
